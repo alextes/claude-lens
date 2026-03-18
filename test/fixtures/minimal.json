@@ -1,0 +1,12 @@
+{
+  "model": {
+    "id": "claude-sonnet-4-6",
+    "display_name": "Sonnet 4.6"
+  },
+  "context_window": {},
+  "cost": {},
+  "workspace": {
+    "current_dir": "/Users/test/project",
+    "project_dir": "/Users/test/project"
+  }
+}
