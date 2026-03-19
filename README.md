@@ -6,15 +6,7 @@ Other statuslines show how much you *used*. Claude Lens shows whether your *pace
 
 ![claude-lens statusline](.github/claude-lens-showcase.jpg)
 
-## What It Shows
-
-```
-[Opus 4.6 ●] ~/project | main 3f +42 -7
-██████░░░░ 57% of 1M | 5h: 62% +23% | 7d: 74% | 1h52m
-```
-
-**Line 1** -- Model, effort, project directory, git branch + uncommitted diff stats
-
+**Line 1** -- Model, effort, project directory, git branch + diff stats
 **Line 2** -- Context window, quota remaining, pace, session duration
 
 The key number is the pace indicator after remaining %:
