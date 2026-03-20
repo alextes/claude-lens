@@ -19,8 +19,8 @@ IFS=$'\t' read -r MODEL DIR PCT CTX DUR COST EFF HAS_RL U5 U7 R5 R7 < <(
     (.cost.total_duration_ms//0|floor),(.cost.total_cost_usd//0),
     ($cfg[0].effortLevel//"default"),
     (if .rate_limits then 1 else 0 end),
-    (.rate_limits.five_hour.used_percentage|floor//"--"),
-    (.rate_limits.seven_day.used_percentage|floor//"--"),
+    (.rate_limits.five_hour.used_percentage//null|if type=="number" then floor else "--" end),
+    (.rate_limits.seven_day.used_percentage//null|if type=="number" then floor else "--" end),
     (.rate_limits.five_hour.resets_at//0),
     (.rate_limits.seven_day.resets_at//0)]|@tsv' <<< "$input")
 case "${EFF:-default}" in high) EF='●';; low) EF='◔';; *) EF='◑';; esac
