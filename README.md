@@ -1,8 +1,8 @@
 # Claude Lens
 
-A lightweight statusline for Claude Code. ~165 lines of Bash + jq.
+A statusline for Claude Code that just works. ~165 lines of Bash + jq -- nothing to break.
 
-Other statuslines show how much you *used*. Claude Lens shows whether your *pace* is sustainable -- so you know to keep pushing or ease off before hitting a wall.
+No Node.js, no npm, no lock files, no cold-start crashes. Install in seconds, forget about it. It also tracks your quota *pace* -- green means headroom, red means slow down.
 
 ![claude-lens statusline](.github/claude-lens-showcase.png)
 
