@@ -7,7 +7,6 @@ input=$(cat)
 command -v jq >/dev/null || { echo "Claude [needs jq]"; exit 0; }
 
 C='\033[36m' G='\033[32m' Y='\033[33m' R='\033[31m' D='\033[2m' N='\033[0m'
-_pc() { (($1>=90)) && printf "$R" || { (($1>=70)) && printf "$Y" || printf "$G"; }; }
 NOW=$(date +%s)
 _stale() { [ ! -f "$1" ] || [ $((NOW-$(stat -f%m "$1" 2>/dev/null||stat -c%Y "$1" 2>/dev/null||echo 0))) -gt "$2" ]; }
 
@@ -26,7 +25,7 @@ IFS=$'\t' read -r MODEL DIR PCT CTX DUR COST EFF HAS_RL U5 U7 R5 R7 < <(
 case "${EFF:-default}" in high) EF='●';; low) EF='◔';; *) EF='◑';; esac
 
 F=$((PCT/10)); ((F<0)) && F=0; ((F>10)) && F=10
-BC=$(_pc "$PCT")
+((PCT>=90)) && BC=$R || { ((PCT>=70)) && BC=$Y || BC=$G; }
 BAR=""; for((i=0;i<F;i++)); do BAR+='█'; done; for((i=F;i<10;i++)); do BAR+='░'; done
 ((CTX>=1000000)) && CL="$((CTX/1000000))M" || CL="$((CTX/1000))K"
 
@@ -127,33 +126,27 @@ else
   # ── End API fallback ──
 fi
 
-_uf() {
-  [[ ! "${1:---}" =~ ^[0-9]+$ ]] && { printf "%s" "${1:---}"; return; }
-  printf "$(_pc $1)%d%%${N}" $((100 - $1))
-}
-
-# Pace delta: positive = ahead of expected consumption (green), negative = over pace (red); suppress within +-10%
-_pace() {
-  local used="$1" rmin="$2" win="$3"
-  [[ "$used" =~ ^[0-9]+$ ]] && [[ "$rmin" =~ ^[0-9]+$ ]] || return
-  ((rmin <= win)) || return
-  local elapsed=$((win - rmin))
-  local exp=$((elapsed * 100 / win))
-  local d=$((exp - used))
-  ((d > 10)) && printf " ${G}+%d%%${N}" "$d"
-  ((d < -10)) && printf " ${R}%d%%${N}" "$d"
-}
-
-# Reset countdown: >=1h show hours, <1h show minutes, >=24h show days
-_rc() {
-  [[ "$1" =~ ^[0-9]+$ ]] || return
-  local m=$1; ((m>=1440)) && { printf " ${D}(%dd)${N}" $((m/1440)); return; }
-  ((m>=60)) && { printf " ${D}(%dh)${N}" $((m/60)); return; }
-  printf " ${D}(%dm)${N}" "$m"
+# Combined usage formatter: remaining% [pace delta] (countdown)
+_usage() {
+  local u="${1:---}" rm="$2" w="$3"
+  if [[ ! "$u" =~ ^[0-9]+$ ]]; then printf "%s" "$u"
+  else
+    local r=$((100-u))
+    ((u>=90)) && printf "${R}%d%%${N}" "$r" || { ((u>=70)) && printf "${Y}%d%%${N}" "$r" || printf "${G}%d%%${N}" "$r"; }
+    if [[ "$rm" =~ ^[0-9]+$ ]] && ((rm<=w)); then
+      local d=$(( (w-rm)*100/w - u ))
+      ((d>10)) && printf " ${G}+%d%%${N}" "$d"
+      ((d<-10)) && printf " ${R}%d%%${N}" "$d"
+    fi
+  fi
+  [[ "$rm" =~ ^[0-9]+$ ]] || return
+  ((rm>=1440)) && { printf " ${D}(%dd)${N}" $((rm/1440)); return; }
+  ((rm>=60)) && { printf " ${D}(%dh)${N}" $((rm/60)); return; }
+  printf " ${D}(%dm)${N}" "$rm"
 }
 L2="${BC}${BAR}${N} ${PCT}% of ${CL}"
-L2+=" | 5h: $(_uf "$U5")$(_pace "$U5" "$RM5" 300)$(_rc "$RM5")"
-L2+=" | 7d: $(_uf "$U7")$(_pace "$U7" "$RM7" 10080)$(_rc "$RM7")"
+L2+=" | 5h: $(_usage "$U5" "$RM5" 300)"
+L2+=" | 7d: $(_usage "$U7" "$RM7" 10080)"
 # Session cost: only for confirmed API users (no rate_limits + no OAuth cache)
 if [[ "$SHOW_COST" == "1" ]]; then
   printf -v _CS "\$%.2f" "$COST" 2>/dev/null
