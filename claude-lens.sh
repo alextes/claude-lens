@@ -147,6 +147,9 @@ _usage() {
 L2="${BC}${BAR}${N} ${PCT}% of ${CL}"
 L2+=" | 5h: $(_usage "$U5" "$RM5" 300)"
 L2+=" | 7d: $(_usage "$U7" "$RM7" 10080)"
+# Extra usage: show only when enabled and has actual spending
+[ "$XO" = 1 ] && ((XU>0)) && \
+  printf -v _XS " | ${Y}\$%d.%02d${N}/\$%d.%02d" $((XU/100)) $((XU%100)) $((XL/100)) $((XL%100)) && L2+="$_XS"
 # Session cost: only for confirmed API users (no rate_limits + no OAuth cache)
 if [[ "$SHOW_COST" == "1" ]]; then
   printf -v _CS "\$%.2f" "$COST" 2>/dev/null
