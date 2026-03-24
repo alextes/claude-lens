@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Claude Code statusline plugin
-# Line1: model (ctx) effort | project (branch) Nf +A -D
-# Line2: bar PCT% CL | 5h remain [±pace] countdown  7d remain [±pace] countdown
+# Line1: effort project (branch) Nf +A -D
+# Line2: bar PCT% | 5h remain [±pace] countdown  7d remain [±pace] countdown
 
 # Disable glob expansion so unquoted vars with wildcards (e.g. DIR paths)
 # are never accidentally expanded into filename lists.
@@ -30,28 +30,15 @@ IFS=$'\t' read -r MODEL DIR PCT CTX COST EFF HAS_RL U5 U7 R5 R7 < <(
     '[(.model.display_name//"?"),(.workspace.project_dir//"."),
     (.context_window.used_percentage//0|floor),(.context_window.context_window_size//0),
     (.cost.total_cost_usd//0),
-    ($cfg[0].effortLevel//"default"),
+    ($cfg[0].effortLevel//"medium"),
     (if .rate_limits then 1 else 0 end),
     (.rate_limits.five_hour.used_percentage//null|if type=="number" then floor else "--" end),
     (.rate_limits.seven_day.used_percentage//null|if type=="number" then floor else "--" end),
     (.rate_limits.five_hour.resets_at//0),
     (.rate_limits.seven_day.resets_at//0)]|@tsv' <<<"$input"
 )
-case "${EFF:-default}" in high) EF='●' ;; low) EF='◔' ;; *) EF='◑' ;; esac
+case "${EFF:-medium}" in high) EF='◕' ;; low) EF='◔' ;; *) EF='◑' ;; esac
 
-# ── Context label (needed by MODEL_SHORT and line 2) ──
-if ((CTX >= 1000000)); then
-  CL="$((CTX / 1000000))M"
-elif ((CTX > 0)); then
-  CL="$((CTX / 1000))K"
-else CL=""; fi
-
-# ── MODEL_SHORT: strip redundant context label ──
-MODEL=${MODEL/ context)/)}
-[[ "$CTX" -gt 0 && "$MODEL" != *"("* ]] && MODEL="${MODEL} (${CL})"
-# Truncate long model names to keep padding within 0-5 chars.
-_ML="${MODEL} ${EF}"
-((${#_ML} > 22)) && MODEL="${MODEL:0:$((22 - 2 - ${#EF}))}…"
 
 # ── Progress Bar ──
 F=$((PCT / 10))
@@ -237,27 +224,15 @@ _usage() {
   printf " ${D}%dm${N}" "$rm"
 }
 
-# ── Output Assembly (symmetric single-pipe alignment) ──
+# ── Output Assembly ──
 # Default XO/XU/XL for stdin path (extra usage only available via API fallback).
 : "${XO:=0}" "${XU:=0}" "${XL:=0}"
 
-# Build plain-text left sections for width measurement (no ANSI codes).
-L1_PLAIN="${MODEL} ${EF}"
-L2_PLAIN="${BAR} ${PCT}% ${CL}"
-# Pad shorter side so | aligns on both lines.
-W1=${#L1_PLAIN} W2=${#L2_PLAIN}
-PAD1="" PAD2=""
-if ((W1 > W2)); then
-  printf -v PAD2 "%*s" $((W1 - W2)) ""
-elif ((W2 > W1)); then
-  printf -v PAD1 "%*s" $((W2 - W1)) ""
-fi
+# Line 1: effort | project (branch) git-stats
+L1="${C}${EF}${N} ${L1R}"
 
-# Line 1: model (context) effort | project (branch) git-stats
-L1="${C}${MODEL} ${EF}${N}${PAD1} ${D}|${N}  ${L1R}"
-
-# Line 2: bar pct% CL | 5h ...  7d ...
-L2="${BC}${BAR}${N} ${PCT}% ${CL}${PAD2} ${D}|${N}  5h $(_usage "$U5" "$RM5" 300)  7d $(_usage "$U7" "$RM7" 10080)"
+# Line 2: bar pct% | 5h ...  7d ...
+L2="${BC}${BAR}${N} ${PCT}% ${D}|${N}  5h $(_usage "$U5" "$RM5" 300)  7d $(_usage "$U7" "$RM7" 10080)"
 # Extra usage: only when enabled and has actual spending (API fallback only)
 [ "$XO" = 1 ] && ((XU > 0)) &&
   printf -v _XS "  ${Y}\$%d.%02d${N}/\$%d.%02d" $((XU / 100)) $((XU % 100)) $((XL / 100)) $((XL % 100)) && L2+="$_XS"
